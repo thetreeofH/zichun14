@@ -2,6 +2,7 @@
 
 
 ## VMware虚拟机部署HDFS集群
+> http://node1:9870
 ### 1.安装包下载
 ```sh
 wget https://dlcdn.apache.org/hadoop/common/hadoop-3.4.1/hadoop-3.4.1.tar.gz
@@ -180,31 +181,45 @@ export HADOOP_MAPRED_ROOT_LOGGER=INFO,RFA
 vim mapred-site.xml
 ```
 ```xml
+
 <configuration>
   <property>
-    <name>dfs.datanode.data.dir.perm</name>
-    <value>700</value>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+    <description></description>
   </property>
   <property>
-    <name>dfs.namenode.name.dir</name>
-    <value>/data/nn</value>
+    <name>mapreduce.jobhistory.address</name>
+    <value>node1:10020</value>
+    <description></description>
   </property>
   <property>
-    <name>dfs.namenode.hosts</name>
-    <value>node1,node2,node3</value>
+    <name>mapreduce.jobhistory.webapp.address</name>
+    <value>node1:19888</value>
+    <description></description>
+  </property>
+  <property>
+    <name>mapreduce.jobhistory.intermediate-done-dir</name>
+    <value>/data/mr-history/tmp</value>
+    <description></description>
+  </property>
+  <property>
+    <name>mapreduce.jobhistory.done-dir</name>
+    <value>/data/mr-history/done</value>
+    <description></description>
   </property>
 <property>
-    <name>dfs.blocksize</name>
-    <value>268435456</value>
-  </property>
-  <property>
-    <name>dfs.namenode.handler.count</name>
-    <value>100</value>
-  </property>
-  <property>
-    <name>dfs.datanode.data.dir</name>
-    <value>/data/dn</value>
-  </property>
+  <name>yarn.app.mapreduce.am.env</name>
+  <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+</property>
+<property>
+  <name>mapreduce.map.env</name>
+  <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+</property>
+<property>
+  <name>mapreduce.reduce.env</name>
+  <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+</property>
 </configuration>
 ```
 
@@ -300,4 +315,39 @@ $HADOOP_HOME/bin/mapred --daemon start|stop historyserver
 ```sh
 $HADOOP_HOME/sbin/start-yarn.sh
 $HADOOP_HOME/bin/mapred --daemon start historyserver
+```
+
+8. 启动结果
+|节点|进程|
+|--|--|
+|node1|<ul><li>23552 NodeManager</li><li>22066 SecondaryNameNode</li><li>25330 JobHistoryServer</li><li>21382 NameNode</li><li>23960 WebAppProxyServer</li><li>21547 DataNode</li><li>23374 ResourceManager</li></ul>|
+|node2|<ul><li>16883 NodeManager</li><li>21547 DataNode</li></ul>|
+|node3|<ul><li>16868 NodeManager</li><li>16741 DataNode</li></ul>|
+
+## 提交程序给mapreduce运行
+> http://node1:8088
+```sh
+$HADOOP_HOME/share/hadoop/mapreduce
+vim words.txt
+hadoop fs -mkdir -p /input
+hadoop fs -mkdir -p /output
+hadoop fs -put words.txt /input
+# 单词计数
+hadoop jar /export/server/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.4.1.jar wordcount hdfs://node1:8020/input hdfs://node1:8020/output/wc
+# 求圆周率
+hadoop jar /export/server/hadoop/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.4.1.jar pi 3 1000
+```
+```
+# words.txt
+hadoop hdfs hadoop hdfs
+hadoop hdfs hadoop hdfs
+hadoop hdfs hadoop hdfs
+hadoop hdfs hadoop hdfs
+hadoop hdfs hadoop hdfs
+hadoop mapreduce hadoop mapreduce
+stone hadoop stone hadoop
+stone hadoop stone hadoop
+stone hadoop stone hadoop
+stone hadoop stone hadoop
+stone hadoop stone hadoop
 ```
